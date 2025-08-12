@@ -1,0 +1,85 @@
+--R(ABC) A->B
+-- Fb  | Insert  | Delete | Update
+-- R   |  +      |   _    | +(A|B)
+
+CREATE TABLE R (A int, B int, C int); 
+
+insert into R values
+(1,1,1);
+
+select *from R;
+
+Insert into R values
+(1,1,2); 
+(2,2,3);
+
+
+select *from R;
+delete from R
+
+create or replace function insert_R_fn()
+	returns trigger as $$
+begin
+	if exists (select 1
+		from R
+		where A = NEW.A
+			and B <> NEW.B) then
+		raise exception 'FD: Insert violation';
+	end if;
+	return NEW;
+end;
+$$ language plpgsql;
+
+create or replace trigger insert_R_trigg
+	before insert on R
+	for each row
+	execute function insert_R_fn()
+
+------------------------------------
+create or replace function update_R_A_fn()
+	returns trigger as $$
+begin
+	if exists (select 1
+		from R
+		where A = NEW.A
+			and B <> NEW.B) then
+		raise exception 'FD: Update violation';
+	end if;
+	return NEW;
+end;
+$$ language plpgsql;
+
+create or replace trigger update_R_A_trigg
+	after update of A on R
+	for each row
+	execute function update_R_A_fn()
+
+update R
+set A=1
+WHERE C=3
+
+select * from R
+-------------------------
+create or replace function update_R_B_fn()
+	returns trigger as $$
+begin
+	if exists (select 1
+		from R
+		where A = NEW.A
+			and B <> NEW.B) then
+		raise exception 'FD: Update B violation';
+	end if;
+	return NEW;
+end;
+$$ language plpgsql;
+
+create or replace trigger update_R_B_trigg
+	after update of B on R
+	for each row
+	execute function update_R_B_fn()
+
+update R
+set B=2
+WHERE C=1
+
+select * from R
